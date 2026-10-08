@@ -1,6 +1,7 @@
 package org.example.recommend;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -28,6 +29,8 @@ import java.util.Properties;
  * 计算除 bankruptcy_protection 之外的所有特征，与 RiskControlJob 独立部署、独立回溯。
  */
 public class RecommendJob {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = createExecutionEnvironment();
@@ -85,7 +88,7 @@ public class RecommendJob {
 
         return features.map(
                 (String json) -> {
-                    JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+                    JsonNode node = MAPPER.readTree(json);
                     GenericRowData row = new GenericRowData(3);
                     row.setField(0, node.get("uid").asLong());
                     row.setField(1, StringData.fromString(node.get("features").toString()));
