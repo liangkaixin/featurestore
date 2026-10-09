@@ -82,6 +82,12 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>8.3.0</version>
         </dependency>
+        <!-- HikariCP 连接池：StateTableLoader 热路径加载状态时复用连接，避免逐条建连 -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>4.0.3</version>
+        </dependency>
         <!-- Jackson JSON 解析，用于 DataStream API 解析 Kinesis 消息 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

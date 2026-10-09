@@ -15,6 +15,7 @@ import org.example.config.AppConfig;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * 推荐特征计算函数。
@@ -23,16 +24,25 @@ import java.time.Instant;
  * 状态设计：
  * - lifetimeState: 全量历史聚合 [total_amount, event_count]
  * - rollingState: 按小时桶聚合 (hourEpoch → [game_count, gtv_sum])
+ * - initialized: 是否已从 feature_state 表加载过初始状态（回溯/修正场景）
  */
 public class RecommendComputeFunction extends KeyedProcessFunction<String, JsonNode, String> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String STATE_KEY_LIFETIME = "lifetime";
+    private static final String STATE_KEY_ROLLING = "rolling";
 
     // Lifetime 状态：[total_amount, event_count]
     private transient ValueState<double[]> lifetimeState;
 
     // Rolling 状态：按小时桶聚合 (hourEpoch → [game_count, gtv_sum])
     private transient MapState<Long, double[]> rollingState;
+
+    // 是否已从状态表加载（回溯/修正时用于衔接历史状态）
+    private transient ValueState<Boolean> initialized;
+
+    // 状态表加载器（HikariCP 连接池）
+    private transient StateTableLoader stateTableLoader;
 
     @Override
     public void open(Configuration parameters) {
@@ -43,12 +53,31 @@ public class RecommendComputeFunction extends KeyedProcessFunction<String, JsonN
                 new MapStateDescriptor<>("rolling",
                         TypeInformation.of(Long.class),
                         TypeInformation.of(double[].class)));
+
+        initialized = getRuntimeContext().getState(
+                new ValueStateDescriptor<>("initialized", Boolean.class));
+
+        stateTableLoader = new StateTableLoader();
+        stateTableLoader.open();
+    }
+
+    @Override
+    public void close() {
+        if (stateTableLoader != null) {
+            stateTableLoader.close();
+        }
     }
 
     @Override
     public void processElement(JsonNode node, Context ctx, Collector<String> out) throws Exception {
         String tableName = node.get("_table_name").asText();
         long uid = extractUid(node);
+
+        // 首次处理该 uid → 从 feature_state 表加载初始状态（回溯/修正场景）
+        if (initialized.value() == null) {
+            loadStateFromTable(uid);
+            initialized.update(true);
+        }
 
         BigDecimal amount = getDecimal(node, "amount");
         BigDecimal entryFee = getDecimal(node, "entry_fee");
@@ -94,6 +123,24 @@ public class RecommendComputeFunction extends KeyedProcessFunction<String, JsonN
             if (keyIter.next() < cutoffHour) {
                 keyIter.remove();
             }
+        }
+    }
+
+    /**
+     * 从 feature_state 表加载 lifetime 和 rolling 状态。
+     * 回溯/修正场景：SQL 先算出正确值写入状态表，Flink 启动时从状态表加载，实现状态衔接。
+     */
+    private void loadStateFromTable(long uid) throws Exception {
+        // 加载 lifetime 状态
+        double[] savedLifetime = stateTableLoader.loadDoubleArray(uid, STATE_KEY_LIFETIME);
+        if (savedLifetime != null) {
+            lifetimeState.update(savedLifetime);
+        }
+
+        // 加载 rolling 状态（putAll 批量写入，避免逐条 put 的序列化开销）
+        Map<Long, double[]> savedRolling = stateTableLoader.loadMap(uid, STATE_KEY_ROLLING);
+        if (savedRolling != null) {
+            rollingState.putAll(savedRolling);
         }
     }
 

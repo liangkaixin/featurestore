@@ -23,6 +23,7 @@ public final class AppConfig {
     public static final String TIDB_USERNAME = "2F8Cw8v9xWqr9Pp.root";
     public static final String TIDB_PASSWORD = "C74gO8cF7wcVCPVj";
     public static final String TIDB_TABLE = "user_feature";
+    public static final String TIDB_STATE_TABLE = "feature_state";
 
     // ==================== Flink ====================
     public static final int PARALLELISM = 4;  // 匹配 Kinesis 4 个 shard，充分利用吞吐

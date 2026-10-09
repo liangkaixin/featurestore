@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
@@ -35,7 +36,7 @@ public class RiskControlJob {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = createExecutionEnvironment();
 
-        DataStream<String> source = createKinesisSource(env);
+        DataStream<String> source = createKinesisSource(env, args);
         DataStream<RowData> featureRows = buildPipeline(source);
 
         // 写入 TiDB（JSON_MERGE_PATCH 合并写入）
@@ -62,14 +63,24 @@ public class RiskControlJob {
         return env;
     }
 
-    private static DataStream<String> createKinesisSource(StreamExecutionEnvironment env) {
-        Properties consumerConfig = new Properties();
-        consumerConfig.setProperty("aws.region", AppConfig.AWS_REGION);
-        consumerConfig.setProperty("source.init.position", "TRIM_HORIZON");
+    private static DataStream<String> createKinesisSource(
+            StreamExecutionEnvironment env, String[] args) {
+        ParameterTool params = ParameterTool.fromArgs(args);
+
+        Properties config = new Properties();
+        config.setProperty("aws.region", AppConfig.AWS_REGION);
+        config.setProperty("source.init.position",
+                params.get("source.init.position", "TRIM_HORIZON"));
+
+        // AT_TIMESTAMP 模式需要额外指定时间戳
+        String timestamp = params.get("source.init.position.timestamp", null);
+        if (timestamp != null) {
+            config.setProperty("source.init.position.timestamp", timestamp);
+        }
 
         return env.addSource(
                 new FlinkKinesisConsumer<>(AppConfig.KINESIS_STREAM_NAME,
-                        new SimpleStringSchema(), consumerConfig));
+                        new SimpleStringSchema(), config));
     }
 
     private static DataStream<RowData> buildPipeline(DataStream<String> source) {
