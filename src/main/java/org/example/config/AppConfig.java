@@ -26,7 +26,6 @@ public final class AppConfig {
     public static final String TIDB_STATE_TABLE = "feature_state";
 
     // ==================== Flink ====================
-    public static final int PARALLELISM = 4;  // 匹配 Kinesis 4 个 shard，充分利用吞吐
     public static final long CHECKPOINT_INTERVAL_MS = 10_000;       // 检查点间隔：10 秒
     public static final long CHECKPOINT_MIN_PAUSE_MS = 5_000;       // 两次检查点最小间隔：5 秒
     public static final long CHECKPOINT_TIMEOUT_MS = 60_000;        // 检查点超时：60 秒

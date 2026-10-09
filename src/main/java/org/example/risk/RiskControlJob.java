@@ -34,9 +34,10 @@ public class RiskControlJob {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
-        StreamExecutionEnvironment env = createExecutionEnvironment();
+        ParameterTool params = ParameterTool.fromArgs(args);
+        StreamExecutionEnvironment env = createExecutionEnvironment(params);
 
-        DataStream<String> source = createKinesisSource(env, args);
+        DataStream<String> source = createKinesisSource(env, params);
         DataStream<RowData> featureRows = buildPipeline(source);
 
         // 写入 TiDB（JSON_MERGE_PATCH 合并写入）
@@ -47,9 +48,8 @@ public class RiskControlJob {
         env.execute(AppConfig.RISK_JOB_NAME);
     }
 
-    private static StreamExecutionEnvironment createExecutionEnvironment() {
+    private static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(AppConfig.PARALLELISM);
 
         env.enableCheckpointing(AppConfig.CHECKPOINT_INTERVAL_MS, CheckpointingMode.EXACTLY_ONCE);
         CheckpointConfig cp = env.getCheckpointConfig();
@@ -64,8 +64,7 @@ public class RiskControlJob {
     }
 
     private static DataStream<String> createKinesisSource(
-            StreamExecutionEnvironment env, String[] args) {
-        ParameterTool params = ParameterTool.fromArgs(args);
+            StreamExecutionEnvironment env, ParameterTool params) {
 
         Properties config = new Properties();
         config.setProperty("aws.region", AppConfig.AWS_REGION);
