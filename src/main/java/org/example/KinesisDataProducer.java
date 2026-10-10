@@ -24,8 +24,8 @@ public class KinesisDataProducer {
     private static final String[] TABLES = {"user_event", "user_deposit", "user_withdraw", "user_play"};
     private static final String[] EVENT_TYPES = {"purchase", "refund", "login", "click", "signup"};
 
-    private static final int BATCH_SIZE = 150;   // PutRecords 单次上限 500 条
-    private static final int TARGET_PER_SECOND = 300;
+    private static final int BATCH_SIZE = 500;   // PutRecords 单次上限 500 条
+    private static final int TARGET_PER_SECOND = 1000;
     private static final int BATCHES_PER_SECOND = TARGET_PER_SECOND / BATCH_SIZE;  // 2 批/秒
 
     public static void main(String[] args) {

@@ -11,6 +11,7 @@ public final class AppConfig {
     // ==================== AWS ====================
     public static final String AWS_REGION = "us-east-1";
     public static final String KINESIS_STREAM_NAME = "test";
+    public static final String EFO_CONSUMER_ARN = "arn:aws:kinesis:us-east-1:700526301352:stream/test/consumer/flink-efo-consumer:1791622821";
 
     // ==================== Iceberg ====================
     public static final String ICEBERG_CATALOG_NAME = "glue";

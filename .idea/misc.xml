@@ -9,7 +9,7 @@
     </option>
     <option name="enabledProfiles">
       <list>
-        <option value="aws" />
+        <option value="recommend" />
       </list>
     </option>
   </component>

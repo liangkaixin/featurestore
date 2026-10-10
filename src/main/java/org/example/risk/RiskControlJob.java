@@ -77,6 +77,8 @@ public class RiskControlJob {
             config.setProperty("source.init.position.timestamp", timestamp);
         }
 
+        config.setProperty("stream.extra.consumer.arn", AppConfig.EFO_CONSUMER_ARN);
+
         return env.addSource(
                 new FlinkKinesisConsumer<>(AppConfig.KINESIS_STREAM_NAME,
                         new SimpleStringSchema(), config));
