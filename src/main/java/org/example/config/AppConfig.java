@@ -31,14 +31,16 @@ public final class AppConfig {
 
     // ==================== TiDB ====================
     // 默认公网 gateway 地址（本地调试用，也是环境变量未设置时的回落值）
+    // rewriteBatchedStatements=true：驱动把 executeBatch 重写为单条 multi-value INSERT（单事务），
+    // 摊薄 TiDB 逐语句 2PC 提交成本，提升批量写吞吐
     private static final String DEFAULT_TIDB_JDBC_URL =
-            "jdbc:mysql://gateway01.us-east-1.prod.aws.tidbcloud.com:4000/test?useSSL=true&requireSSL=true&verifyServerCertificate=false";
+            "jdbc:mysql://gateway01.us-east-1.prod.aws.tidbcloud.com:4000/test?useSSL=true&requireSSL=true&verifyServerCertificate=false&rewriteBatchedStatements=true";
 
     // TiDB PrivateLink 私网域名：仅在 MSF VPC 内（含 VPC 内 CloudShell）经 VPC 私网 DNS 可解析；
     // 本地/普通 CloudShell 解析失败(NXDOMAIN)，故可用其作为环境探测依据。
     private static final String TIDB_PRIVATE_HOST = "gateway01-privatelink.us-east-1.prod.aws.tidbcloud.com";
     private static final String TIDB_PRIVATE_JDBC_URL =
-            "jdbc:mysql://" + TIDB_PRIVATE_HOST + ":4000/test?useSSL=true&requireSSL=true&verifyServerCertificate=false";
+            "jdbc:mysql://" + TIDB_PRIVATE_HOST + ":4000/test?useSSL=true&requireSSL=true&verifyServerCertificate=false&rewriteBatchedStatements=true";
 
     // 生产(MSF 接 VPC/PrivateLink)通过环境变量 TIDB_JDBC_URL 注入私网 URL（在 MSF 应用环境变量中配置）；
     // 未设置时按 DNS 探测自动选择：私网域名可解析→私网 URL；不可解析→公网 URL。
