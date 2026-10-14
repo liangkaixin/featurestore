@@ -13,6 +13,13 @@ public final class AppConfig {
     public static final String KINESIS_STREAM_NAME = "test";
     public static final String EFO_CONSUMER_ARN = "arn:aws:kinesis:us-east-1:700526301352:stream/test/consumer/flink-efo-consumer:1791622821";
 
+    // ==================== MySQL 源库 (AWS RDS / solitaire) ====================
+    // rewriteBatchedStatements=true 让驱动把批量 INSERT 重写为 multi-value 语句，大幅提升写入吞吐
+    public static final String MYSQL_JDBC_URL = "jdbc:mysql://database-1.cw3sqmwyelui.us-east-1.rds.amazonaws.com:3306/solitaire"
+            + "?rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    public static final String MYSQL_USERNAME = "admin";
+    public static final String MYSQL_PASSWORD = "qq123123";
+
     // ==================== Iceberg ====================
     public static final String ICEBERG_CATALOG_NAME = "glue";
     public static final String ICEBERG_WAREHOUSE = "s3://feature-store-warehouse/iceberg/";

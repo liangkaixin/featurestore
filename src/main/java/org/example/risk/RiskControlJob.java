@@ -60,6 +60,10 @@ public class RiskControlJob {
                 CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, Duration.ofSeconds(10)));
 
+        // 【排查用】禁用算子链，让 process / map / sink 在 UI 上独立显示背压与 busy 指标，
+        // 便于定位吞吐瓶颈。定位完成后应移除本行以恢复 chaining（链化可减少序列化与网络开销）。
+        env.disableOperatorChaining();
+
         return env;
     }
 
