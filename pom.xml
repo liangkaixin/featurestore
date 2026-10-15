@@ -105,6 +105,13 @@
             <artifactId>aws-lambda-java-core</artifactId>
             <version>1.2.3</version>
         </dependency>
+        <!-- MSF 运行时属性：KinesisAnalyticsRuntime.getApplicationProperties() 读取控制台配置的属性组，
+             不使用该库则 main() 拿不到控制台的 runtime properties -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-kinesisanalytics-runtime</artifactId>
+            <version>1.2.0</version>
+        </dependency>
         <!-- AWS SDK v2 Kinesis Client，用于测试数据生产 -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

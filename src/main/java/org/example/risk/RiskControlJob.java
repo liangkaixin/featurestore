@@ -3,14 +3,11 @@ package org.example.risk;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
@@ -19,9 +16,9 @@ import org.example.compute.RiskComputeFunction;
 import org.example.sink.IcebergSinkFactory;
 import org.example.sink.TiDbSinkFactory;
 import org.example.source.EventParser;
+import org.example.source.KinesisSourceFactory;
 
 import java.time.Duration;
-import java.util.Properties;
 
 /**
  * 风控特征 Flink 作业。
@@ -34,10 +31,9 @@ public class RiskControlJob {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
-        ParameterTool params = ParameterTool.fromArgs(args);
-        StreamExecutionEnvironment env = createExecutionEnvironment(params);
+        StreamExecutionEnvironment env = createExecutionEnvironment();
 
-        DataStream<String> source = createKinesisSource(env, params);
+        DataStream<String> source = KinesisSourceFactory.create(env, args);
         DataStream<RowData> featureRows = buildPipeline(source);
 
         // 写入 TiDB（JSON_MERGE_PATCH 合并写入）
@@ -48,7 +44,7 @@ public class RiskControlJob {
         env.execute(AppConfig.RISK_JOB_NAME);
     }
 
-    private static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
+    private static StreamExecutionEnvironment createExecutionEnvironment() {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         env.enableCheckpointing(AppConfig.CHECKPOINT_INTERVAL_MS, CheckpointingMode.EXACTLY_ONCE);
@@ -65,27 +61,6 @@ public class RiskControlJob {
 //        env.disableOperatorChaining();
 
         return env;
-    }
-
-    private static DataStream<String> createKinesisSource(
-            StreamExecutionEnvironment env, ParameterTool params) {
-
-        Properties config = new Properties();
-        config.setProperty("aws.region", AppConfig.AWS_REGION);
-        config.setProperty("source.init.position",
-                params.get("source.init.position", "TRIM_HORIZON"));
-
-        // AT_TIMESTAMP 模式需要额外指定时间戳
-        String timestamp = params.get("source.init.position.timestamp", null);
-        if (timestamp != null) {
-            config.setProperty("source.init.position.timestamp", timestamp);
-        }
-
-        config.setProperty("stream.extra.consumer.arn", AppConfig.EFO_CONSUMER_ARN);
-
-        return env.addSource(
-                new FlinkKinesisConsumer<>(AppConfig.KINESIS_STREAM_NAME,
-                        new SimpleStringSchema(), config));
     }
 
     private static DataStream<RowData> buildPipeline(DataStream<String> source) {
